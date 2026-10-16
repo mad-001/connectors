@@ -7,10 +7,11 @@ server needs; players join as usual.
 It supports **Enshrouded 1.0** (game build **1267041**, hotfix 1.0.0.1, Steam build 25967645), tested
 natively on a Windows dedicated server, and the earlier game build **1024233** (Steam build 23178631),
 tested under **GE-Proton10-30** in `mornedhels/enshrouded-server:1.7.2-proton`. Everything that
-changes between game builds lives in one data file, `takaro/enshrouded-gamedata.json`, so a new game
-build needs a new section there rather than a new DLL. On a build the file does not know, the plugin
-still loads, but the features whose game code moved switch themselves off (see "A game update can
-switch a feature off" below). **Keep the server on a build the connector supports.**
+changes between game builds lives in one data file, `takaro/enshrouded-gamedata.json`. On a build the
+file does not know yet, the plugin works the new section out itself from stable anchors in the game
+code, saves it to that file and uses it; anything it cannot work out reports itself degraded (see
+"A game update can switch a feature off" below) while the rest keeps running. **The builds above are
+the tested ones.**
 
 ## What works, what doesn't
 
@@ -77,8 +78,11 @@ Download the latest release: https://takaro.io/connectors/enshrouded
 - An **Enshrouded dedicated server** you can stop, start and copy files to, on a game build the
   plugin's game data knows: **1267041 (Enshrouded 1.0 hotfix 1.0.0.1)** or 1024233. Tested natively on
   Windows (1.0) and under Wine/Proton in the Linux Docker image `mornedhels/enshrouded-server` (1024233).
-  On another build the plugin logs `gamedata: no section for build <n>` and uses its older heuristics;
-  features whose code moved report themselves degraded. Adding a section to
+  On another build the plugin derives a section from the running game, logs
+  `gamedata: derived build <n> (... values) and saved it to ...`, and adds it to
+  `takaro/enshrouded-gamedata.json` with the note `derived automatically`. If a value cannot be
+  derived it logs `gamedata: deriving build <n> failed: <value>` and uses its older heuristics;
+  features whose code moved then report themselves degraded, and a hand-written section in
   `takaro/enshrouded-gamedata.json` (see DEVELOPMENT.md) brings them back without a new DLL.
 - A **Takaro** game server of type **Generic**, and its **registration token**.
 
@@ -179,7 +183,8 @@ that name.
 Stop the server, replace only `dbghelp.dll` with the new one, start it again. Your config in
 `takaro/plugin.json` and the connector's state in `takaro/connector-state/` stay as they are.
 `takaro/enshrouded-gamedata.json` is yours too: a newer plugin uses its own embedded copy for any build
-your file has no section for, so delete the file to pick up the new defaults for every build.
+your file has no section for, so delete the file to pick up the new defaults for every build (any
+derived sections are then derived again on the next start).
 
 **From 0.5.0 (plugin + sidecar):** 0.6.0 replaces the sidecar. Stop and remove the sidecar before the
 new DLL starts, so only one of them connects with the server's identity; move the tokens from
