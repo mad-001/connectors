@@ -23,6 +23,9 @@
 // ------------------------------------------------------------------------------------------------
 // Constants that are reflection type hashes (keen qualifiedHash of the type name); they only change if the type is
 // renamed. Offsets that are build-specific are derived from matched code in WorldHooksInit (see Layout).
+volatile uint8_t g_giveLevel = 0;   // set by the "give ... <level> [rarity]" command for one give
+volatile int g_giveRarity = -1;     // 0 Common, 1 Uncommon, 2 Rare, 3 Epic, 4 Legendary; -1 = the game default
+
 namespace {
 
 const uint32_t kCurrentTransform = 0x027ac564;  // keen::WorldTransform, 56 B
@@ -334,6 +337,8 @@ void GiveTryInject() {
     memcpy(a + 8, &g_give.count, 2);
     memset(a + 10, 0, 10);  // hasItemRarity, rarity, level, createForAllPlayers, createFullStack, fill..., cleanup, flame
     a[14] = g_give.fullStack ? 1 : 0;  // createFullStack: AdminInventoryCreate (0x153ef0) creates maxStackSize, else 1
+    a[12] = g_giveLevel;  // AdminInventoryCreateAction.level (0 = the game's default)
+    if (g_giveRarity >= 0) a[10] = 1, a[11] = (uint8_t)g_giveRarity;  // hasItemRarity, rarity
     g_give.injections++;
     InterlockedExchange(&g_bypassEid, (LONG)g_give.eid);
 }

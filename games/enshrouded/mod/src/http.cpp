@@ -13,6 +13,8 @@
 #include "plugin_api.h"
 #include "state.h"
 #include "world.h"
+extern volatile uint8_t g_giveLevel;
+extern volatile int g_giveRarity;
 
 #include <cstdio>
 #include <cstdlib>
@@ -559,10 +561,21 @@ bool RunCommand(const std::string& line, std::string& out) {
             out += "\n" + i.get("amount")->str + " x " + i.get("code")->str + " [" + i.get("inventory")->str + "]";
         return true;
     }
-    if (cmd == "give" && (a.size() == 3 || a.size() == 4)) {
-        double n = 1;
-        if (a.size() == 4 && !Num(a[3], n)) return out = "usage: give <player> <itemCode> [amount]", false;
+    if (cmd == "give" && a.size() >= 3 && a.size() <= 6) {
+        double n = 1, lvl = 0;
+        int rar = -1;
+        static const char* kRar[] = {"common", "uncommon", "rare", "epic", "legendary"};
+        if (a.size() == 6)
+            for (int k = 0; k < 5; k++)
+                if (_stricmp(a[5].c_str(), kRar[k]) == 0) rar = k;
+        if ((a.size() >= 4 && !Num(a[3], n)) || (a.size() >= 5 && (!Num(a[4], lvl) || lvl < 1 || lvl > 255)) ||
+            (a.size() == 6 && rar < 0))
+            return out = "usage: give <player> <itemCode> [amount] [level] [common|uncommon|rare|epic|legendary]", false;
+        g_giveLevel = (uint8_t)lvl;
+        g_giveRarity = rar;
         Response r = DoGive(a[1], a[2], n);
+        g_giveLevel = 0;
+        g_giveRarity = -1;
         if (r.status != 200) return out = ErrText(r), false;
         out = "gave " + std::to_string((long long)n) + " x " + a[2];
         return true;
